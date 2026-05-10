@@ -1,0 +1,29 @@
+# --- 编译与缓存 ---
+.anchor/
+target/
+node_modules/
+.DS_Store
+dist/
+build/
+
+# --- Solana 账本与日志 ---
+test-ledger/
+*.log
+
+# --- 敏感信息 (非常重要!) ---
+# 自动忽略所有 JSON 文件，因为 Anchor 生成的部署私钥通常是 .json 格式
+# 如果你 app 目录里有需要的 json 配置文件，可以单独放行
+**/*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!composer.json
+
+# 显式忽略常见的私钥文件名
+id.json
+deploy-keypair.json
+*-keypair.json
+
+# --- 环境变量 ---
+.env
+.env.local
