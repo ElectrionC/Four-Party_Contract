@@ -44,6 +44,14 @@ pub mod multi_party_escrow {
         Ok(())
     }
 
+    // 0. 初始化 escrow 账户（A 调用，创建订单后调用）
+    // 在链上创建托管代币账户
+    pub fn init_escrow(_ctx: Context<InitEscrow>, _order_id: u64) -> Result<()> {
+        // Anchor 已经通过 #[account(init)] 自动为我们初始化了 Token 账户！
+        // 所以我们不需要手动调用 token::initialize_account
+        Ok(())
+    }
+
     // 2. 充值并锁定资金（A 调用）
     // A 将 USDC 转入合约托管的代币账户，同时锁定订单
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
@@ -205,6 +213,38 @@ pub struct CreateOrder<'info> {
     /// CHECK: 仅存储地址，不做账户验证
     pub oracle: AccountInfo<'info>,
 
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(order_id: u64)]
+pub struct InitEscrow<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,                   // A（货主），支付创建费用
+
+    // 订单账户
+    #[account(
+        seeds = [b"order", order_id.to_le_bytes().as_ref()],
+        bump = order_account.bump,
+    )]
+    pub order_account: Account<'info, OrderAccount>,
+
+    // 托管 PDA 的代币账户
+    #[account(
+        init,
+        payer = payer,
+        seeds = [b"escrow", order_id.to_le_bytes().as_ref()],
+        bump,
+        token::mint = token_mint,
+        token::authority = order_account,
+    )]
+    pub escrow_token_account: Account<'info, TokenAccount>,
+
+    /// USDC mint (CHECK: This is safe since we're using it to initialize the token account with #[account(init, token::mint)] which already validates it)
+    pub token_mint: AccountInfo<'info>,
+
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
